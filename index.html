@@ -12,10 +12,12 @@
 </head>
 
 <body>
+    <!-- Loader Screen -->
     <div id="loading" style="text-align: center;">
         <img id="loading-image" src="assets/images/ajax-loader.webp" alt="Loading..." />
     </div>
 
+    <!-- Page Header -->
     <header>
         <div style="text-align:center">
             <nav class="navbar">
@@ -24,6 +26,7 @@
         </div>
     </header>
     
+    <!-- Dropdown Menu -->
     <div style="text-align:center;margin-top:50px;">
         <form id="yearForm">
             <label for="year" style="font-size: 16px;font-family:Poppins;">Choose a year:</label><br>
@@ -52,16 +55,19 @@
     </div>
 
     <div style="display: flex;margin-top:20px;">
+        <!-- Bar Chart Area -->
         <div style="text-align:start;">
             <svg id="barChart" width = 900 height = 900 style="border: 2px solid black;">
             </svg>
         </div>
 
         <div>
+            <!-- Map Area 1 -->
             <div style="text-align: center; border: 2px solid black;position:relative;">
                 <div id="legend1" style="position:absolute;right:10px;top:5px;font-family:Poppins;">Number of Rape Cases in 2001<br></div>
                 <svg id="mapOld" height="445" width="600"></svg>
             </div>
+            <!-- Map Area 2 -->
             <div style="text-align: center; border: 2px solid black;position:relative;">
                 <div id="legend2" style="position:absolute;right:10px;top:5px;font-family:Poppins;">Number of Rape Cases in 2018<br></div>
                 <svg id ="map2018" height = "445" width = "600"></svg>
@@ -69,9 +75,10 @@
         </div>
     </div>
 
+    <!-- Importing d3.js library -->
     <script src = "assets/js/d3.js"></script>
 
-    <!-- Old Map -->
+    <!-- 2001-2012 Map -->
     <script>
         let year = 2001;
         let mapOld = d3.select("#mapOld");
@@ -91,19 +98,15 @@
             let crimeInfo = oldData[0];
             let mapInfo = oldData[1];
 
+            // filtering crime data
             crimeInfo = crimeInfo.filter(function(d){
                 if (d['CRIME HEAD'] != 'RAPE' || d['STATE/UT'] == "All India") {
-                    return false; // skip
+                    return false; // skip this
                 }
                 return true;
             });
-
-            let projection = d3.geoMercator()
-                            .scale(730)
-                            .translate([-800, 520]);
-
-            let path = d3.geoPath().projection(projection);
             
+            // storing rape cases of the selected year according to the state
             let dataIndex = {};
         
             for(let c of crimeInfo){
@@ -111,6 +114,7 @@
                 dataIndex[state] = +c[year];
             }
 
+            // storing cases in the properties object
             mapInfo.features = mapInfo.features.map(d=>{
                 let state = d.properties.st_nm;
                 let cases = dataIndex[state];
@@ -121,21 +125,32 @@
             let maxCases = d3.max(mapInfo.features, d => d.properties.Cases);
             let midCases = d3.median(mapInfo.features, d => d.properties.Cases);
 
-            let scale = d3.scaleLinear()
+            // scale to be used for the map
+            let cScale = d3.scaleLinear()
                         .domain([0, midCases, maxCases])
                         .range(["#FFBABA", "#FF5252", "#A70000"]);
 
+            // using geoMercator projection
+            let projection = d3.geoMercator()
+                            .scale(730)
+                            .translate([-800, 520]);
+
+            let path = d3.geoPath().projection(projection);
+
+            // removing old map before creating the new map
             mapOld.selectAll("path").remove();
+
+            // creating the map
             mapOld.selectAll("path").data(mapInfo.features)
                 .enter()
                 .append("path")
                 .attr("d", path)
                 .attr("stroke", "#3C0000")
-                .attr("fill", d => d.properties.Cases ? scale(d.properties.Cases) : "black")
+                .attr("fill", d => d.properties.Cases ? cScale(d.properties.Cases) : "black")
                 .append('title')
                 .text(d => d.properties.st_nm + ": " + (d.properties.Cases ? d.properties.Cases : 'Not Available'));
 
-            //legend structure
+            // legend structure
             let w = 300, h = 50;
 
             let key = d3.select("#legend1")
@@ -173,6 +188,7 @@
                 .style("fill", "url(#gradient)")
                 .attr("transform", "translate(0,10)");
 
+            // scale for the legend
             let y = d3.scaleLinear()
                         .range([0, 300])
                         .domain([0, maxCases]);
@@ -201,14 +217,16 @@
         function show2018Map(myData) {
             let crimeInfo = myData[0];
             let mapInfo = myData[1];
-            console.log(mapInfo);
 
+            // storing rape cases of the year 2018 according to the state
             let dataIndex = {};
+
             for(let c of crimeInfo){
                 let state = c['State/UT'];
                 dataIndex[state] = +c['Rape (Total) (Sec.376 IPC)'];
             }
 
+            // storing cases in the properties object
             mapInfo.features = mapInfo.features.map(d => {
                 let state = d.properties.st_nm;
                 let cases = dataIndex[state];
@@ -219,16 +237,19 @@
             let maxCases = d3.max(mapInfo.features, d => d.properties.Cases);
             let midCases = d3.median(mapInfo.features, d => d.properties.Cases);
 
+            // scale to be used for the map
             let cScale = d3.scaleLinear()
                     .domain([0, midCases, maxCases])
                     .range(["#FFBABA", "#FF5252", "#A70000"]);
 
+            // using geoMercator projection
             let myProjection = d3.geoMercator()
                                     .scale(730)
                                     .translate([-800, 520]);
 
             let geoPath = d3.geoPath().projection(myProjection);
 
+            // creating the map
             map2018.selectAll("path")
                 .data(mapInfo.features)
                 .enter()
@@ -239,6 +260,7 @@
                 .append('title')
                 .text(d => d.properties.st_nm + ": " + (d.properties.Cases ? d.properties.Cases : 'Not Available'));
 
+            // legend structure
             let w = 300, h = 50;
 
             let key = d3.select("#legend2")
@@ -276,6 +298,7 @@
                 .style("fill", "url(#gradient)")
                 .attr("transform", "translate(0,10)");
 
+            // scale for the legend
             let y = d3.scaleLinear()
                         .range([0, 300])
                         .domain([0, maxCases]);
@@ -306,6 +329,7 @@
         ]).then(showData);
         
         function showData(myData){
+            // filtering 2018 data
             filteredData2018 = myData[1].filter(function(d){
                 if ((d['Category'] == "State" || d['Category'] == "Union Territory") && d['State/UT'] != "Total UT(s)" && d['State/UT'] != "Total State(s)") {
                     return true;
@@ -313,6 +337,7 @@
                 return false; // skip
             });
 
+            // filtering 2001-2012 data
             filteredDataCurrent = myData[0].filter(function(d) {
                 if (d['CRIME HEAD'] != 'RAPE' || d['STATE/UT'] == "All India") {
                     return false; // skip
@@ -320,13 +345,16 @@
                 return true;
             });
 
+            // selecting states from the data
             states = d3.map(filteredData2018, d => d['State/UT']);
 
+            // yScale to show the states
             yScale = d3.scaleBand()
                             .domain(states)
                             .range([700, 0])
                             .padding(0.6);
 
+            // creating the first y-axis to show the states
             let yAxis1 = d3.axisLeft(yScale);
             barChart.append('g').call(yAxis1).style("transform","translate(180px,100px)").attr("id", "yAxis1");
 
@@ -334,12 +362,15 @@
         }
 
         function showPercentChange(){
+            // storing rape cases of the year 2018 according to the state
             let crimes = {};
+
             for(let c of filteredData2018){
                 let state = c['State/UT'];
                 crimes[state] = +c['Rape (Total) (Sec.376 IPC)'];
             }
 
+            // storing percent change of rape cases from the selected year to the year 2018 according to the state
             for(let c of filteredDataCurrent){
                 let state = c['STATE/UT'];
                 if(c[year] == 0) {
@@ -349,27 +380,26 @@
                 }
             }
 
+            // finding max value of the percent change
             let maxValue = Number.MIN_VALUE;
-            let minValue = Number.MAX_VALUE;
 
             for(let c in crimes){
                 if(maxValue < crimes[c]) {
                     maxValue = crimes[c];
                 }
-                
-                if(minValue > crimes[c]) {
-                    minValue = crimes[c];
-                }
             }
 
+            // xScale to show the percent change 
             let xScale = d3.scaleLinear()
                                 .domain([-1 * maxValue, maxValue])
                                 .range([-300, 300]);
 
+            // creating the x-axis to show the percent change
             let xAxis = d3.axisTop(xScale);
             d3.select('#xAxis').remove();
             barChart.append('g').call(xAxis).style("transform","translate(480px,100px)").attr("id", "xAxis");
 
+            // creating the vertical grid
             let xAxisGrid = d3.axisBottom(xScale).tickSize(700).tickFormat('');
             d3.select('#xAxisGrid').remove();
             barChart.append('g')
@@ -380,11 +410,13 @@
                     .select('path')
                     .style('stroke','none');
 
+            // creating the second y-axis to show the bars
             let yAxis2 = d3.axisRight(yScale);
             d3.select('#yAxis2').remove();
             barChart.append('g').call(yAxis2).style("transform","translate(480px,100px)").attr("id", "yAxis2");
             d3.select("#yAxis2").selectAll("g").remove();
 
+            // creating the bars
             d3.select('#yAxis2').selectAll('rect')
                 .data(states)
                 .enter()
@@ -397,8 +429,10 @@
                 .append('title')
                 .text(d =>d + ': ' + crimes[d] + "%");
 
-
+            // removing the old x-label
             d3.select('#x-label').remove();
+
+            // creating the x-label
             barChart.append("text")
                 .attr('id', 'x-label')
                 .attr("text-anchor", "middle")
@@ -408,6 +442,7 @@
                 .style('font-size','24px')
                 .style('font-family', 'Poppins');
 
+            // creating the y-label
             barChart.append("text")
                 .attr("text-anchor", "end")
                 .attr("x", -350)
@@ -415,12 +450,12 @@
                 .attr("transform", "rotate(-90)")
                 .text("States/UT of India")
                 .style('font-size','24px')
-                .style('font-family', 'Poppins');
-                
+                .style('font-family', 'Poppins');               
         }
     </script>
 
     <script>
+        // select the year value from the dropdown
         d3.select('#yearForm').on('submit',function(e){
             e.preventDefault();
             year = document.querySelector('#year').value;
